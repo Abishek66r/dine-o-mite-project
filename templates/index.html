@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dine-O-Mite: AI Meal Planner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+            color: #1f2937;
+        }
+    </style>
+</head>
+<body class="flex flex-col items-center justify-center min-h-screen p-4">
+
+    <main class="w-full max-w-2xl bg-white rounded-xl shadow-2xl p-6 sm:p-10 text-center">
+        <h1 class="text-4xl sm:text-5xl font-extrabold text-amber-600 mb-2">Dine-O-Mite</h1>
+        <p class="text-lg text-gray-600 mb-8">Your AI-Powered Meal Planner</p>
+
+        <!-- User Input Section -->
+        <section class="mb-8">
+            <h2 class="text-2xl font-semibold mb-4">Enter Your Ingredients</h2>
+            <p class="text-gray-500 mb-4">Tell me what you have, and I'll find a recipe for you!</p>
+            <div class="relative">
+                <input type="text" id="ingredientsInput" placeholder="e.g., chicken, broccoli, cheese" class="w-full px-4 py-3 rounded-lg border-2 border-gray-300 focus:outline-none focus:border-amber-500 transition-colors">
+                <button id="generateBtn" class="mt-4 w-full bg-amber-500 text-white font-bold py-3 px-6 rounded-lg shadow-lg hover:bg-amber-600 transition-transform transform hover:scale-105 active:scale-95">
+                    Generate Recipe
+                </button>
+            </div>
+        </section>
+
+        <!-- Recipe Output Section -->
+        <section id="recipeSection" class="hidden">
+            <div id="loading" class="hidden flex flex-col items-center">
+                <div class="animate-spin rounded-full h-12 w-12 border-4 border-t-4 border-amber-500 border-gray-200 mb-4"></div>
+                <p class="text-gray-500">Generating your recipe...</p>
+            </div>
+            
+            <div id="recipeOutput" class="text-left bg-gray-50 p-6 rounded-lg shadow-inner">
+                <h3 id="recipeTitle" class="text-3xl font-bold mb-4"></h3>
+                <p id="recipeInstructions" class="text-gray-700 leading-relaxed mb-6"></p>
+                <div class="bg-white rounded-lg p-4 shadow-md">
+                    <h4 class="text-xl font-semibold mb-2">Ingredients</h4>
+                    <ul id="ingredientsList" class="list-disc list-inside text-gray-700 space-y-1"></ul>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        document.getElementById('generateBtn').addEventListener('click', async () => {
+            const ingredients = document.getElementById('ingredientsInput').value;
+            const recipeSection = document.getElementById('recipeSection');
+            const loading = document.getElementById('loading');
+            const recipeOutput = document.getElementById('recipeOutput');
+            const recipeTitle = document.getElementById('recipeTitle');
+            const recipeInstructions = document.getElementById('recipeInstructions');
+            const ingredientsList = document.getElementById('ingredientsList');
+
+            if (!ingredients) {
+                console.error("Please enter some ingredients.");
+                return;
+            }
+
+            recipeSection.classList.remove('hidden');
+            loading.classList.remove('hidden');
+            recipeOutput.classList.add('hidden');
+            
+            try {
+                const systemPrompt = "You are a world-class chef. Provide a simple, delicious recipe based on the user's ingredients. The recipe must be in JSON format.";
+                const userQuery = `Create a recipe using the following ingredients: ${ingredients}.`;
+                
+                const payload = {
+                    contents: [{ parts: [{ text: userQuery }] }],
+                    systemInstruction: { parts: [{ text: systemPrompt }] },
+                    generationConfig: {
+                        responseMimeType: "application/json",
+                        responseSchema: {
+                            type: "OBJECT",
+                            properties: {
+                                "recipeName": { "type": "STRING" },
+                                "ingredients": { "type": "ARRAY", "items": { "type": "STRING" } },
+                                "instructions": { "type": "STRING" }
+                            }
+                        }
+                    }
+                };
+
+                const apiKey = "AIzaSyDQtUm5fcdNzktF1p0s3EhfHZNZTm_TZ74";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`API call failed with status: ${response.status}`);
+                }
+
+                const result = await response.json();
+                const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                if (jsonText) {
+                    const recipe = JSON.parse(jsonText);
+                    
+                    recipeTitle.textContent = recipe.recipeName;
+                    recipeInstructions.textContent = recipe.instructions;
+                    
+                    ingredientsList.innerHTML = '';
+                    recipe.ingredients.forEach(ingredient => {
+                        const li = document.createElement('li');
+                        li.textContent = ingredient;
+                        ingredientsList.appendChild(li);
+                    });
+                } else {
+                    throw new Error("Invalid response format from API.");
+                }
+            } catch (error) {
+                console.error("Error generating recipe:", error);
+                recipeTitle.textContent = "Error Generating Recipe";
+                recipeInstructions.textContent = "An error occurred while trying to generate your recipe. Please try again with different ingredients.";
+                ingredientsList.innerHTML = '';
+            } finally {
+                loading.classList.add('hidden');
+                recipeOutput.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
