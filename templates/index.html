@@ -5,8 +5,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    
+    <!-- Correct way to link the favicon using Django's static tag -->
     <link rel="icon" href="{% static 'favicon.ico' %}" type="image/x-icon">
-    <title>Dine-O-Mite: AI Meal Planner</title>
+    <link rel="icon" type="image/png" href="{% static 'dining.png' %}" />  <!-- Optional PNG image -->
+
+    <title>Dine-O-Mite: AI Meal Planner</title>  <!-- Emoji in title tag -->
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
